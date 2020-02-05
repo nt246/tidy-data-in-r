@@ -27,14 +27,14 @@ This lesson was adapted from the course [R for Excel Users](https://github.com/r
 In this session we'll learn some tools to import data into R and help make data **tidy** and more coder-friendly. Those include:
 
 - Practice data import to R
-- Use `tidyr::pivot_wider()` and `tidyr::pivot_longer()` to reshape data frames
-- Use `janitor::clean_names()` to make column headers more manageable
-- Use `tidyr::unite()` and `tidyr::separate()` to merge or separate information from different columns
+- Reshape dataframes with `tidyr::pivot_wider()` and `tidyr::pivot_longer()`
+- Make column headers more manageable with `janitor::clean_names()`
+- Merge or separate information from different columns`tidyr::unite()` and `tidyr::separate()`
 - Detect or replace a string with `stringr` functions
-- Use `dplyr::filter()` to conditionally subset our data by rows, and
-- Use `dplyr::*_join()` functions to merge data frames together
+- Conditionally subset our data by rows with `dplyr::filter()`, and
+- Merge data frames together `dplyr::*_join()` functions
 
-
+&nbsp;
 
 #### Resources
 
@@ -44,6 +44,7 @@ In this session we'll learn some tools to import data into R and help make data 
 - `tidyr` [vignette on tidy data](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html).
 - [Hadley's paper on tidy data](https://vita.had.co.nz/papers/tidy-data.pdf) provides a thorough investigation.
 
+&nbsp;
 
 #### Prerequisites
 
