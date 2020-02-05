@@ -1,5 +1,6 @@
 ---
 title: "NTRES 6600 - Lesson 3"
+#subtitle: "Importing, Reformatting and Tidying Data in R"
 author: "Nina Overgaard Therkildsen"
 date: "2/5/2020"
 output: html_document
@@ -7,6 +8,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
 ```
 
 &nbsp;
@@ -20,21 +22,21 @@ This lesson was adapted from the course [R for Excel Users](https://github.com/r
 &nbsp;
 &nbsp;
 
-### Objectives
+#### Objectives
 
 In this session we'll learn some tools to import data into R and help make data **tidy** and more coder-friendly. Those include:
 
 - Practice data import to R
 - Use `tidyr::pivot_wider()` and `tidyr::pivot_longer()` to reshape data frames
-- `janitor::clean_names()` to make column headers more manageable
-- `tidyr::unite()` and `tidyr::separate()` to merge or separate information from different columns
+- Use `janitor::clean_names()` to make column headers more manageable
+- Use `tidyr::unite()` and `tidyr::separate()` to merge or separate information from different columns
 - Detect or replace a string with `stringr` functions
 - Use `dplyr::filter()` to conditionally subset our data by rows, and
 - Use `dplyr::*_join()` functions to merge data frames together
 
 
 
-### Resources
+#### Resources
 
 - [Ch. 12 *Tidy Data*, in R for Data Science](https://r4ds.had.co.nz/tidy-data.html) by Grolemund & Wickham
 - [Jenny Bryan's Intro to Tidy Data](https://github.com/jennybc/lotr-tidy/blob/master/01-intro.md)
@@ -43,7 +45,7 @@ In this session we'll learn some tools to import data into R and help make data 
 - [Hadley's paper on tidy data](https://vita.had.co.nz/papers/tidy-data.pdf) provides a thorough investigation.
 
 
-### Prerequisites
+#### Prerequisites
 
 Before the class, please make sure you have done the following:
 
@@ -62,7 +64,7 @@ Before the class, please make sure you have done the following:
 &nbsp;
 &nbsp;
 
-## Set-up
+## PART 1: Set-up
 
 ### RStudio Orientation
 
@@ -124,7 +126,6 @@ Run the following lines of code in RStudio if you don't already have these packa
 # Install packages
 install.packages("tidyverse")
 install.packages("janitor")
-install.packages("here")
 install.packages("readxl")
 ```
 
@@ -133,7 +134,6 @@ Now to make each package accessible in our session, we'll have a attach them wit
 # Attach packages
 library(tidyverse)
 library(janitor)
-library(here)
 library(readxl)
 ```
 &nbsp;
@@ -183,7 +183,7 @@ Whenever you refer to a file with a relative path it will look for it here. Now 
 
 
 
-## Importing data into R
+## PART 2: Importing data into R
 
 In this section, we'll learn how to read some external data (from .xls, .xlsx, and CSV files) into R with the `readr` and `readxl` packages (both part of the `tidyverse`). 
 
@@ -222,10 +222,10 @@ We can explore our data frame a bit more to see what it contains. For example:
 - `head()`: to see the first *x* rows (6 is the default)
 - `summary()`: see a quick summary of each variable
 
-Cool! We can also read in a file directly from the web/cloud by using the URL in place of the file path. Let's try with a file we'll use later:
+Cool! We can also read in a file directly from the web/cloud by using the URL in place of the file path.  
 
 ```{r message=FALSE}
-lotr  <- read_csv("https://raw.githubusercontent.com/jennybc/lotr-tidy/master/data/lotr_tidy.csv")
+ca_np  <- read_csv("https://raw.githubusercontent.com/nt246/tidy-data-in-r/master/data/ca_np.csv")
 ```
 
 
@@ -245,7 +245,7 @@ If we're dealing with an Excel file with multiple tabs, the default behavior `re
 ci_np <- read_excel("data/ci_np_2sheets.xlsx", "Sheet1")
 ```
 
-### Other import functions
+### Other data import functions
 
 There are many other functions for reading data into R
 
@@ -264,14 +264,8 @@ There are many other functions for reading data into R
 &nbsp;
 &nbsp;
 
-## Tidy data
+## PART 3: Tidy data - Recap from last lesson and tools for reformatting
 
-
-Now that we know how to import data in RStudio, we want to make sure it's "tidy". "Tidy" might sound like a generic way to describe non-messy looking data, but it is actually a specific data structure.
-
-More detail in [Jenny Bryan's tutorial](https://github.com/jennybc/lotr-tidy/blob/master/01-intro.md)
-
-&nbsp;
 &nbsp;
 
 <blockquote class="twitter-tweet" lang="en">
@@ -283,13 +277,16 @@ be “write code for humans, write data for computers”.
 
 </p>
 
+&nbsp;
+&nbsp;
+
 — Vince Buffalo (@vsbuffalo)
 <a href="https://twitter.com/vsbuffalo/statuses/358699162679787521">July
 20, 2013</a>
 
 </blockquote>
 
-
+Now that we know how to import data in RStudio, we want to make sure it's "tidy". "Tidy" might sound like a generic way to describe non-messy looking data, but it is actually a specific data structure.
 
 When data is *tidy*, it is rectangular with each variable as a column, each row an observation, and each cell contains a single value (see: [Ch. 12 in R for Data Science by Grolemund & Wickham](https://r4ds.had.co.nz/tidy-data.html)).
 
@@ -308,7 +305,7 @@ We've used both `read_csv()` and `read_excel()` to import data from spreadsheets
 Use `read_excel()` to read in the **inverts.xlsx** data as an objected called **inverts**.
 
 ```{r, message = FALSE}
-inverts <- read_excel(here("data", "inverts.xlsx"))
+inverts <- read_excel("data/inverts.xlsx")
 ```
 
 Be sure to explore the imported data a bit: 
@@ -319,6 +316,9 @@ names(inverts)
 summary(inverts)
 ```
 
+&nbsp;
+&nbsp;
+
 ## `tidyr::pivot_longer()` to reshape from wider-to-longer format
 
 If we look at *inverts*, we can see that the *year* variable is actually split over 3 columns, so we'd say this is currently in **wide format**. 
@@ -328,6 +328,15 @@ There may be times when you want to have data in wide format, but often with cod
 Schematically, converting from wide to long format using `pivot_longer()` looks like this: 
 
 ![](img/tidyr_pivot_longer.png)
+
+
+&nbsp;
+
+`pivot_longer()` takes a data frame, and returns a data frame. The arguments after the data argument that we'll need are:
+
+- `cols` for the column names that we want to turn into a single column.
+- `names_to`: the old column names are going to a new column. What should this new column be named? (optional, but highly recommended)
+- `values_to`: the values underneath the old columns are going to a new column. What should this new column be named? (optional, but highly recommended)
 
 We'll use `tidyr::pivot_longer()` to gather data from all years in *inverts* (columns `2016`, `2017`, and `2018`) into two columns: 
 
@@ -351,12 +360,19 @@ inverts_long
 
 Hooray, long format! 
 
+&nbsp;
 
 ## `tidyr::pivot_wider()` to convert from longer-to-wider format
 
 In the previous example, we had information spread over multiple columns that we wanted to *gather*. Sometimes, we'll have data that we want to *spread* over multiple columns. 
 
 For example, imagine that starting from *inverts_long* we want each species in the *common_name* column to exist as its **own column**. In that case, we would be converting from a longer to a wider format, and will use `tidyr::pivot_wider()`.
+
+Like `pivot_longer()`, `pivot_wider()` takes a data frame and returns a data frame. The arguments after the data argument that we'll need are:
+
+- `names_from`: the new column names are coming from an old column. Which column is this?
+- `values_from`: the values under the new columns are coming from an old column. Which column is this?
+
 
 Specifically for our data, we'll use `pivot_wider()` to spread the *common_name* across multiple columns as follows: 
 
@@ -370,9 +386,44 @@ inverts_wide <- inverts_long %>%
 inverts_wide
 ```
 
-We can see that now each *species* has its own column (wider format). But also notice that those column headers (since they have spaces) might not be in the most coder-friendly format...
+We can see that now each *species* has its own column (wider format). 
 
-## `janitor::clean_names()` to clean up column names
+&nbsp;
+&nbsp;
+
+### Your turn - Exercise
+
+Now, let's try these functions to tidy up and reorganize a completely different dataset.
+
+Take a look at the [three data tables](https://github.com/jennybc/lotr-tidy/blob/master/01-intro.md) that Jenny Bryan has compiled based on data from the Lord of the Rings trilogy. 
+
+Look at the tables above and answer these questions:
+
+  * What's the total number of words spoken by male hobbits?
+  * Does a certain `Race` dominate a movie? Does the dominant `Race` differ across the movies?
+  
+How well does your approach scale if there were many more movies or if I provided you with updated data that includes all the `Races` (e.g. dwarves, orcs, etc.)?
+
+&nbsp;
+
+#### Tasks
+
+1. Let's read the data into RStudio. A .csv file with the three tables stacked together into one table is available here: https://raw.githubusercontent.com/nt246/tidy-data-in-r/master/data/lotr_table.csv. You can either download the file and put it in your data folder, or you can read it in directly with the URL.
+
+2. Are these data in tidy format? If not, use the `pivot_longer()` function to make the data tidy.
+
+3. After tidying the data and completing your analysis, you may want to output a table that has each race in its own column. Use the `pivot_wider()` function to make such a table and save it as `lotr_wide`.
+
+4. OPTIONAL: Use the `pivot_longer()` function to transform you `lotr_wide` back to tidy format.
+
+
+
+&nbsp;
+&nbsp;
+
+## PART 4. Cleaning up column names with `janitor::clean_names()`
+
+If we go back to our `inverts_wide`, we see that each *species* has its own column. But also notice that those column headers (since they have spaces) might not be in the most coder-friendly format...
 
 The `janitor` package by Sam Firke is a great collection of functions for some quick data cleaning, like:
 
@@ -410,18 +461,26 @@ And there are other case options in `clean_names()`, like:
 - "lower_upper" produces lowerUPPER
 - "upper_lower" produces UPPERlower
 
-## `tidyr::unite()` and `tidyr::separate()` to combine or separate information in column(s)
+![](img/case.jpg)
+
+&nbsp;
+&nbsp;
+
+## PART 5: Combine or separate information in column(s) with`tidyr::unite()` and `tidyr::separate()`
 
 Sometimes we'll want to *separate* contents of a single column into multiple columns, or *combine* entries from different columns into a single column. 
 
 For example, the following data frame has *genus* and *species* in separate columns:
-```{r, echo = FALSE, eval=FALSE}
+&nbsp;
+```{r, echo = FALSE, eval=TRUE}
 unite_ex <- tribble(
   ~id, ~genus, ~species, ~common_name,
   1, "Scorpaena", "guttata", "sculpin",
-  2, "Sebastes", "miniatus", "vermillion"
+  2, "Sebastes", "miniatus", "vermillion",
+  3, "Gadus", "macrocephalus", "Pacific cod"
 )
-kable(unite_ex)
+kable(unite_ex) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 We may want to combine the genus and species into a single column, *scientific_name*: 
@@ -434,6 +493,8 @@ kable(unite_ex_sci_name)
 ```
 
 Or we may want to do the reverse (separate information from a single column into multiple columns). Here, we'll learn `tidyr::unite()` and `tidyr::separate()` to help us do both. 
+
+&nbsp;
 
 ### `tidyr::unite()` to merge information from separate columns
 
@@ -461,7 +522,9 @@ inverts_unite <- inverts_long %>%
 head(inverts_unite)
 ```
 
-#### Activity: 
+&nbsp;
+
+### Your turn: 
 
 **Task:** Create a new object called 'inverts_moyr', starting from inverts_long, that unites the month and year columns into a single column named "mo_yr", using a slash "/" as the separator. Then try updating the separator to something else! Like "_hello!_".
 
@@ -481,7 +544,7 @@ inverts_moyr <- inverts_long %>%
 ```{r}
 # Uniting more than 2 columns: 
 inverts_triple_unite <- inverts_long %>% 
-  tidyr::unite(col = "year_site_name",
+  unite(col = "year_site_name",
                c(year, site, common_name),
                sep = "-") # Note: this is a dash
 ```
@@ -504,10 +567,16 @@ Let's start again with *inverts_unite*, where we have combined the *site* and *y
 
 ```{r}
 inverts_sep <- inverts_unite %>% 
-  tidyr::separate(site_year, into = c("my_site", "my_year"))
+  separate(site_year, into = c("my_site", "my_year"))  
+# Here we don't specify how the values should be separated, so we rely on the default, which is a match to any sequence of non alphanumeric values.
+# type ?separate to open the usage information for the function and read more about how to separate by a different character.
+
 ```
 
-## `stringr::str_replace()` to replace a pattern
+&nbsp;
+&nbsp;
+
+## PART 6: Replace a pattern with `stringr::str_replace()`
 
 Was data entered in a way that's difficult to code with, or is just plain annoying? Did someone wrongly enter "fish" as "fsh" throughout the spreadsheet, and you want to update it everywhere? 
 
@@ -515,7 +584,7 @@ Use `stringr::str_replace()` to automatically replace a string pattern.
 
 **Warning**: The pattern will be replaced everywhere - so if you ask to replace "fsh" with "fish", then "offshore" would be updated to "offishore". Be careful to ensure that when you think you're making one replacement, you're not also replacing something else unexpectedly. 
 
-Starting with inverts, let's any place we find "california" we want to replace it with the abbreviation "CA":
+Starting with inverts, let's say that any place we find "california" we want to replace it with the abbreviation "CA":
 
 ```{r}
 ca_abbr <- inverts %>% 
@@ -529,4 +598,223 @@ ca_abbr <- inverts %>%
 
 Now, check to confirm that "california" has been replaced with "CA". 
 
-### END **tidying** session!
+
+&nbsp;
+&nbsp;
+
+## PART 7: Filtering
+
+In parts 7 and 8 we will use 
+- `filter()` to conditionally subset our data by **rows**, and
+- `*_join()` functions to merge data frames together
+
+### Objectives
+
+- Use `filter()` to subset data frames, returning **rows** that satisfy variable conditions
+- Use `full_join()`, `left_join()`, and `inner_join()` to merge data frames, with different endpoints in mind
+- Use `filter()` and `*_join()` as part of a wrangling sequence
+
+### Resources
+
+- [`filter()` documentation from tidyverse.org](https://dplyr.tidyverse.org/reference/filter.html)
+- [`join()` documentation from tidyverse.org](https://dplyr.tidyverse.org/reference/join.html)
+- [Chapters 5 and 13 in *R for Data Science* by Garrett Grolemund and Hadley Wickham](https://r4ds.had.co.nz/)
+
+
+- fish.csv
+- kelp_fronds.xlsx (read in only the "abur" worksheet by adding argument `sheet = "abur"` to `read_excel()`)
+
+```{r, message = FALSE}
+# Read in data: 
+fish <- read_csv("data/fish.csv")
+kelp_abur <- read_excel("data/kelp_fronds.xlsx", sheet = "abur")
+```
+
+We should always explore the data we've read in. Use functions like `View()`, `names()`, `summary()`, `head()` and `tail()` to check them out. 
+Now, let's use `filter()` to decide which observations (rows) we'll keep or exclude in new subsets, similar to using Excel's VLOOKUP function or filter tool.
+
+## `dplyr::filter()` to conditionally subset by rows
+
+Use `filter()` to let R know which **rows** you want to keep or exclude, based whether or not their contents match conditions that you set for one or more variables. 
+
+![](img/rstudio-cheatsheet-filter.png)
+
+Some examples in words that might inspire you to use `filter()`: 
+
+- "I only want to keep rows where the temperature is greater than 90&deg;F."
+- "I want to keep all observations **except** those where the tree type is listed as **unknown**."
+- "I want to make a new subset with only data for mountain lions (the species variable) in California (the state variable)."
+
+When we use `filter()`, we need to let R know a couple of things:
+
+- What data frame we're filtering from
+- What condition(s) we want observations to **match** and/or **not match** in order to keep them in the new subset
+
+Here, we'll learn some common ways to use `filter()`.
+
+### Filter rows by matching a single character string
+
+Let's say we want to keep all observations from the **fish** data frame where the common name is "garibaldi" (fun fact: that's California's official marine state fish, protected in California coastal waters!). 
+
+Here, we need to tell R to only *keep rows* from the **fish** data frame when the common name (**common_name** variable) exactly matches **garibaldi**. 
+
+Use `==` to ask R to look for exact matches:
+
+```{r}
+fish_garibaldi <- fish %>% 
+  filter(common_name == "garibaldi")
+```
+
+Check out the **fish_garibaldi** object to ensure that only *garibaldi* observations remain. 
+
+#### Activity
+
+**Task**: Create a subset starting from the **fish** data frame, stored as object **fish_mohk**, that only contains observations from Mohawk Reef (site entered as "mohk"). 
+
+**Solution**: 
+```{r}
+fish_mohk <- fish %>% 
+  filter(site == "mohk")
+```
+
+Explore the subset you just created to ensure that only Mohawk Reef observations are returned. 
+
+### Filter rows based on numeric conditions
+
+Use expected operators (>, <, >=, <=, ==) to set conditions for a numeric variable when filtering. For this example, we only want to retain observations when the **total_count** column value is >= 50:
+
+```{r}
+fish_over50 <- fish %>% 
+  filter(total_count >= 50)
+```
+
+### Filter to return rows that match *this* OR *that* OR *that*
+
+What if we want to return a subset of the **fish** df that contains *garibaldi*, *blacksmith* OR *black surfperch*?
+
+There are several ways to write an "OR" statement for filtering, which will keep any observations that match Condition A *or* Condition B *or* Condition C. In this example, we will create a subset from **fish** that only contains rows where the **common_name** is *garibaldi* or *blacksmith* or *black surfperch*.
+
+Way 1: You can indicate **OR** using the vertical line operator `|` to indicate "OR":
+
+```{r}
+fish_3sp <- fish %>% 
+  filter(common_name == "garibaldi" | 
+           common_name == "blacksmith" | 
+           common_name == "black surfperch")
+```
+
+#### Activity
+
+**Task:** Create a subset from **fish** called **fish_gar_2016** that keeps all observations if the year is 2016 *OR* the common name is "garibaldi."
+
+**Solution:**
+```{r}
+fish_gar_2016 <- fish %>% 
+  filter(year == 2016 | common_name == "garibaldi")
+```
+
+### Filter to return observations that match **this** AND **that**
+
+In the examples above, we learned to keep observations that matched any of a number of conditions (**or** statements). 
+
+Sometimes we'll only want to keep observations that satisfy multiple conditions (e.g., to keep this observation it must satisfy this condition **AND** that condition). For example, we may want to create a subset that only returns rows from **fish** where the **year** is 2018 *and* the **site** is Arroyo Quemado "aque" 
+
+In `filter()`, add a comma (or ampersand '&') between arguments for multiple "and" conditions:
+
+```{r}
+aque_2018 <- fish %>% 
+  filter(year == 2018, site == "aque")
+```
+
+Check it out to see that only observations where the site is "aque" in 2018 are retained: 
+```{r}
+aque_2018
+```
+
+Like most things in R, there are other ways to do the same thing. For example, you could do the same thing using `&` (instead of a comma) between "and" conditions:
+
+```{r, eval = FALSE}
+# Use the ampersand (&) to add another condition "and this must be true":
+aque_2018 <- fish %>% 
+  filter(year == 2018 & site == "aque")
+```
+
+Or you could just do two filter steps in sequence: 
+
+```{r, eval = FALSE}
+# Written as sequential filter steps:
+aque_2018 <- fish %>% 
+  filter(year == 2018) %>% 
+  filter(site == "aque")
+```
+
+
+&nbsp;
+&nbsp;
+
+## PART 8: Relational data: merge dataframes with join* functions
+
+There are a number of ways to merge data frames in R. We'll use `full_join()`, `left_join()`, and `inner_join()` in this session. 
+
+From R Documentation (`?join`): 
+
+- `full_join()`: "returns all rows and all columns from both x and y. Where there are not matching values, returns NA for the one missing." Basically, nothing gets thrown out, even if a match doesn't exist - making `full_join()` the safest option for merging data frames. When in doubt, `full_join()`.
+
+- `left_join()`: "return all rows from x, and all columns from x and y. Rows in x with no match in y will have NA values in the new columns. If there are multiple matches between x and y, all combinations of the matches are returned."
+
+- `inner_join()`: "returns all rows from x where there are matching values in y, and all columns from x and y. If there are multiple matches between x and y, all combination of the matches are returned." This will drop observations that don't have a match between the merged data frames, which makes it a riskier merging option if you're not sure what you're trying to do. 
+
+Schematic (from RStudio data wrangling cheat sheet): 
+![](img/rstudio-cheatsheet-combine-options1.png)
+
+We will use **kelp_abur** as our "left" data frame, and **fish** as our "right" data frame, to explore different join outcomes. 
+
+### `full_join()` to merge data frames, keeping everything
+
+When we join data frames in R, we need to tell R a couple of things (and it does the hard joining work for us):
+
+- Which data frames we want to merge together
+- Which variables to merge by
+
+Use `full_join()` to safely combine two data frames, keeping everything from both and populating with `NA` as necessary.
+
+Example: use `full_join()` to combine **kelp_abur** and **fish**:
+
+```{r}
+abur_kelp_fish <- kelp_abur %>% 
+  full_join(fish, by = c("year", "site")) 
+```
+
+Let's look at the merged data frame with `View(abur_kelp_fish)`. A few things to notice about how `full_join()` has worked: 
+
+1. All columns that existed in **both data frames** still exist
+2. All observations are retained, even if they don't have a match. In this case, notice that for other sites (not 'abur') the observation for fish still exists, even though there was no corresponding kelp data to merge with it. 
+3. The kelp frond data is joined to *all observations* where the joining variables (*year*, *site*) are a match, which is why it is repeated 5 times for each year (once for each fish species).
+
+Because all data (observations & columns) are retained, `full_join()` is the safest option if you're unclear about how to merge data frames. 
+
+### `left_join(x,y)` to merge data frames, keeping everything in the 'x' data frame and only matches from the 'y' data frame
+
+Now, we want to keep all observations in *kelp_abur*, and merge them with *fish* while only keeping observations from *fish* that match an observation within *abur*. When we use `left_join()`, any information from *fish* that don't have a match (by year and site) in *kelp_abur* won't be retained, because those wouldn't have a match in the left data frame. 
+
+```{r}
+kelp_fish_left <- kelp_abur %>% 
+  left_join(fish, by = c("year","site"))
+```
+
+Notice when you look at **kelp_fish_left**, data for other sites that exist in fish do **not** get joined, because `left_join(df_a, df_b)` will only keep observations from `df_b` if they have a match in `df_a`! 
+
+### `inner_join()` to merge data frames, only keeping observations with a match in **both**
+
+Use `inner_join()` if you **only** want to retain observations that have matches across **both data** frames. Caution: this is built to exclude any observations that don't match across data frames by joined variables - double check to make sure this is actually what you want to do! 
+
+For example, if we use `inner_join()` to merge fish and kelp_abur, then we are asking R to **only return observations where the joining variables (*year* and *site*) have matches in both data frames.** Let's see what the outcome is: 
+```{r}
+kelp_fish_injoin <- kelp_abur %>% 
+  inner_join(fish, by = c("year", "site"))
+# kelp_fish_injoin
+```
+
+Here, we see that only observations (rows) where there is a match for *year* and *site* in both data frames are returned.
+
+
