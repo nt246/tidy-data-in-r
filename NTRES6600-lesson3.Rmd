@@ -267,10 +267,7 @@ There are many other functions for reading data into R
 ## Tidy data
 
 
-Now that we know how to import data in RStudio, we want to make sure it's "tidy". "Tidy" might sound like a generic way to describe non-messy looking data, but it is actually a specific data structure. When data is *tidy*, it is rectangular with each variable as a column, each row an observation, and each cell contains a single value (see: [Ch. 12 in R for Data Science by Grolemund & Wickham](https://r4ds.had.co.nz/tidy-data.html)).
-
-![](img/tidy_data.png)
-
+Now that we know how to import data in RStudio, we want to make sure it's "tidy". "Tidy" might sound like a generic way to describe non-messy looking data, but it is actually a specific data structure.
 
 More detail in [Jenny Bryan's tutorial](https://github.com/jennybc/lotr-tidy/blob/master/01-intro.md)
 
@@ -291,6 +288,14 @@ be “write code for humans, write data for computers”.
 20, 2013</a>
 
 </blockquote>
+
+
+
+When data is *tidy*, it is rectangular with each variable as a column, each row an observation, and each cell contains a single value (see: [Ch. 12 in R for Data Science by Grolemund & Wickham](https://r4ds.had.co.nz/tidy-data.html)).
+
+![](img/tidy_data.png)
+
+
 
 &nbsp;
 &nbsp;
@@ -346,29 +351,6 @@ inverts_long
 
 Hooray, long format! 
 
-One thing that isn't obvious at first (but would become obvious if you continued working with this data) is that since those year numbers were initially column names (characters), when they are stacked into the *year* column, their class wasn't auto-updated to numeric. 
-
-Explore the class of *year* in *inverts_long*:
-
-```{r}
-class(inverts_long$year)
-```
-
-That's a good thing! We don't want R to update classes of our data without our instruction. We'll use `dplyr::mutate()` in a different way here: to create a new column (that's how we've used `mutate()` previously) that has the same name of an existing column, in order to update and overwrite the existing column. 
-
-In this case, we'll `mutate()` to add a column called *year*, which contains an `as.numeric()` version of the existing *year* variable: 
-
-```{r}
-# Coerce "year" class to numeric: 
-inverts_long <- inverts_long %>% 
-  mutate(year = as.numeric(year))
-```
-
-Checking the class again, we see that *year* has been updated to a numeric variable:
-
-```{r}
-class(inverts_long$year)
-```
 
 ## `tidyr::pivot_wider()` to convert from longer-to-wider format
 
