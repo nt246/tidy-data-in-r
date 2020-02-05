@@ -1,0 +1,361 @@
+# Intro to data wrangling, Part II
+
+
+```{r, warning = FALSE}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(gapminder))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(tsibble))
+suppressPackageStartupMessages(library(here))
+suppressPackageStartupMessages(library(DT))
+```
+
+## Orientation (5 min)
+
+### Worksheet
+
+You can find a worksheet template for today [here](https://raw.githubusercontent.com/STAT545-UBC/Classroom/master/tutorials/cm007-exercise.Rmd).
+
+### Announcements
+
+- Due tonight:
+  - Peer review 1 due tonight.
+  - Homework 2 due tonight.
+- Reminder about setting up your own hw repo.
+- stat545.com
+
+### Follow-up
+
+- By the way, STAT 545 jumps into the tidyverse way of doing things in R, instead of the base R way of doing things. Lecture 2 was about "just enough" base R to get you started. If you feel that you want more practice here, take a look at [the R intro stat videos by MarinStatsLectures](https://www.youtube.com/playlist?list=PLqzoL9-eJTNARFXxgwbqGo56NtbJnB37A) (link is now in cm002 notes too).
+- `if` statement on its own won't work within `mutate()` because it's not vectorized. Would need to vectorize it with `sapply()` or, better, the `purrr::map` family:
+
+```{r}
+tibble(a = 1:4) %>% 
+  mutate(b = (if (a < 3) "small" else "big"),
+         c = sapply(a, function(x) if (x < 3) "small" else "big"),
+         d = purrr::map_chr(a, ~  (if(.x < 3) "small" else "big")))
+```
+
+### Today's Lessons
+
+Where we are with `dplyr`:
+
+- [x] `select()`
+- [x] `filter()`
+- [x] `arrange()`
+- [x] `mutate()`
+- [ ] `summarize()`
+- [ ] `group_by()`
+    - [ ] grouped `mutate()`
+    - [ ] grouped `summarize()`
+
+Today: the unchecked boxes. 
+
+We'll then look to a special type of tibble called a __tsibble__, useful for handling data with a time component. In doing so, we will touch on its older cousin, __lubridate__, which makes handling dates and times easier. 
+
+### Resources
+
+Concepts from today's class are closely mirrored by the following resources.
+
+- Jenny's tutorial on [Single table dplyr functions](https://stat545.com/dplyr-single.html)
+
+Other resources:
+
+- Like learning from a textbook? Check out all of [r4ds: transform](http://r4ds.had.co.nz/transform.html).
+- The [intro to `dplyr` vignette](https://cran.r-project.org/web/packages/dplyr/vignettes/dplyr.html) is also a great resource. 
+
+Resources for specific concepts:
+
+- To learn more about window functions and how dplyr handles them, see the [window-functions](https://cran.r-project.org/web/packages/dplyr/vignettes/window-functions.html) vignette for the `dplyr` package. 
+
+[tsibble demo](https://tsibble.tidyverts.org/)
+
+## `summarize()` (3 min)
+
+Like `mutate()`, the `summarize()` function also creates new columns, but the calculations that make the new columns must reduce down to a single number. 
+
+For example, let's compute the mean and standard deviation of life expectancy in the gapminder data set:
+
+```{r}
+gapminder %>% 
+  summarize(mu    = mean(lifeExp),
+            sigma = sd(lifeExp))
+```
+
+Notice that all other columns were dropped. This is necessary, because there's no obvious way to compress the other columns down to a single row. This is unlike `mutate()`, which keeps all columns, and more like `transmute()`, which drops all other columns.
+
+As it is, this is hardly useful. But that's outside of the context of _grouping_, coming up next.
+
+## `group_by()` (20 min)
+
+The true power of `dplyr` lies in its ability to group a tibble, with the `group_by()` function. As usual, this function takes in a tibble and returns a (grouped) tibble. 
+
+Let's group the gapminder dataset by continent and year:
+
+```{r}
+gapminder %>% 
+  group_by(continent, year)
+```
+
+The only thing different from a regular tibble is the indication of grouping variables above the tibble. This means that the tibble is recognized as having "chunks" defined by unique combinations of continent and year:
+
+- Asia in 1952 is one chunk.
+- Asia in 1957 is another chunk.
+- Europe in 1952 is another chunk.
+- etc...
+
+Notice that the data frame isn't rearranged by chunk! 
+
+Now that the tibble is grouped, operations that you do on a grouped tibble _will be done independently within each chunk_, as if no other chunks exist. 
+
+You can also create new variables and group by that variable simultaneously. Try splitting life expectancy by "small" and "large" using 60 as a threshold:
+
+```{r}
+gapminder %>% 
+  group_by(smallLifeExp = lifeExp < 60)
+```
+
+
+### Grouped `summarize()` (10 min)
+
+Want to compute the mean and standard deviation for each year for every continent? No problem:
+
+```{r}
+gapminder %>% 
+  group_by(continent, year) %>% 
+  summarize(mu    = mean(lifeExp),
+            sigma = sd(lifeExp))
+```
+
+Notice:
+
+- The grouping variables are kept in the tibble, because their values are unique within in chunk (by definition of the chunk!)
+- With each call to `summarize()`, the grouping variables are "peeled back" from last grouping variable to first.
+
+This means the above tibble is now only grouped by continent. What happens when we reverse the grouping?
+
+```{r}
+gapminder %>% 
+  group_by(year, continent) %>%    # Different order
+  summarize(mu    = mean(lifeExp),
+            sigma = sd(lifeExp))
+```
+
+The grouping columns are switched, and now the tibble is grouped by year instead of continent. 
+
+`dplyr` has a bunch of convenience functions that help us write code more eloquently. We could use `group_by()` and `summarize()` with `length()` to find the number of entries each country has:
+
+```{r}
+gapminder %>% 
+  group_by(country) %>% 
+  transmute(n = length(country))
+```
+
+Or, we can use `dplyr::n()` to count the number of rows in each group:
+
+```{r}
+gapminder %>% 
+  group_by(country) %>% 
+  summarize(n = n())
+```
+
+Or better yet, just use `dplyr::count()`:
+
+```{r}
+gapminder %>% 
+  count(country)
+```
+
+### Grouped `mutate()` (3 min)
+
+Want to get the increase in GDP per capita for each country? No problem:
+
+```{r}
+gap_inc <- gapminder %>% 
+  arrange(year) %>% 
+  group_by(country) %>%
+  mutate(gdpPercap_inc = gdpPercap - lag(gdpPercap))
+DT::datatable(gap_inc)
+```
+
+You can't see it here (because of the `datatable()` output), but the tibble is still grouped by country.
+
+Drop the `NA`s with another convenience function, this time supplied by the `tidyr` package (another tidyverse package that we'll see soon):
+
+```{r}
+gap_inc %>% 
+  tidyr::drop_na()
+```
+
+## Function types (5 min)
+
+We've seen cases of transforming variables using `mutate()` and `summarize()`, both with and without `group_by()`. How can you know what combination to use? Here's a summary based on one of three types of functions.
+
+
+| Function type | Explanation | Examples | In `dplyr` |
+|------|-----|----|----|
+| Vectorized functions | These take a vector, and operate on each component independently to return a vector of the same length. In other words, they work element-wise. | `cos()`, `sin()`, `log()`, `exp()`, `round()` | `mutate()` |
+| Aggregate functions | These take a vector, and return a vector of length 1 | `mean()`, `sd()`, `length()` | `summarize()`, esp with `group_by()`. |
+| Window Functions | these take a vector, and return a vector of the same length that depends on the vector as a whole. | `lag()`, `rank()`, `cumsum()` | `mutate()`, esp with `group_by()` |
+
+## `dplyr` Exercises (20 min)
+
+## Dates and Times (5 min)
+
+The `lubridate` package is great for identifying dates and times. You can also do arithmetic with dates and times with the package, but we won't be discussing that.
+
+Make an object of class `"Date"` using a function that's some permutation of `y`, `m`, and `d` (for year, month, and date, respectively). These functions are more flexible than your yoga instructor:
+
+```{r}
+lubridate::mdy("September 24, 2019")
+lubridate::mdy("Sep 24 2019")
+lubridate::mdy("9-24-19")
+lubridate::dym(c("24-2019, September", "25 2019 Sep"))
+```
+
+Notice that they display the dates all in `ymd` format, which is best for computing because the dates sort nicely this way.
+
+This is not just a character!
+
+```{r}
+lubridate::ymd("2019 September 24") %>% 
+  class()
+```
+
+You can tag on `hms`, too:
+
+```{r}
+lubridate::ymd_hms("2019 September 24, 23:59:59")
+```
+
+We can also extract information from these objects. Day of the week:
+
+```{r}
+today <- lubridate::ymd("2019 September 24")
+lubridate::wday(today, label = TRUE)
+```
+
+Day:
+
+```{r}
+lubridate::day(today)
+```
+
+Number of days into the year:
+
+```{r}
+lubridate::yday(today)
+```
+
+Is it a leap year this year?
+
+```{r}
+lubridate::leap_year(today)
+```
+
+The newer `tsibble` package gives these `lubridate` functions some friends. What's the year and month? Year and week?
+
+```{r}
+tsibble::yearmonth(today)
+tsibble::yearweek(today)
+```
+
+
+## Tsibbles (15 min)
+
+A `tsibble` (from the package of the same name) is a special type of `tibble`, useful for handling data where a column indicates a time variable.
+
+As an example, here are daily records of a household's electricity usage:
+
+```{r}
+energy <- here::here("data", "daily_consumption.csv") %>% 
+  read_csv()
+energy
+```
+
+Let's make this a `tsibble` in the same way we'd convert a data frame to a `tibble`: with the `as_tsibble()` function. The conversion requires you to specify which column contains the time index, using the `index` argument.
+
+```{r}
+(energy <- as_tsibble(energy, index = date))
+```
+
+We already see an improvement vis-a-vis the sorted dates!
+
+This is an example of _time series_ data, because the time interval has a regular spacing. A `tsibble` cleverly determines and stores this interval. With the energy consumption data, the interval is one day ("1D" means "1 day", not "1 dimension"!):
+
+```{r}
+interval(energy)
+```
+
+Notice that there is no record for December 21, 2006, in what would be Row 5. Such records are called _implicit NA's_, because they're actually missing, but aren't explicitly shown as missing in your data set. If you don't make these explicit, you could mess up your analysis if it's anticipating your data to be equally spaced in time. Just `full_gaps()` to bring them out of hiding:
+
+
+```{r}
+(energy <- fill_gaps(energy))
+```
+
+Already, it's better to plot the data now that these gaps are filled in. Let's check out 2010. See how the plot without NA's can be a little misleading? Moral: always be as honest as possible with your data.
+
+```{r}
+small_energy <- filter(energy, year(date) == 2010)
+cowplot::plot_grid(
+  ggplot(small_energy, aes(date, intensity)) +
+    geom_line() +
+    theme_bw() +
+    xlab("Date (in 2010)") +
+    ggtitle("NA's made explicit"),
+  ggplot(drop_na(small_energy), aes(date, intensity)) +
+    geom_line() +
+    theme_bw() +
+    xlab("Date (in 2010)") +
+    ggtitle("NA's in hiding (implicit)"),
+  nrow = 2
+)
+```
+
+How would we convert `gapminder` to a `tsibble`, since it has a time series per country? Use the `key` argument to specify the grouping:
+
+```{r}
+gapminder %>% 
+  as_tsibble(index = year, key = country)
+```
+
+
+
+### `index_by()` instead of `group_by()` (5 min)
+
+It looks like there's seasonality in intensity across the year:
+
+```{r}
+ggplot(energy, aes(yday(date), intensity)) +
+  geom_point() +
+  theme_bw() +
+  labs(x = "Day of the Year")
+```
+
+Let's get a mean estimate of intensity on each day of the year. We'd like to `group_by(yday(date))`, but because we're grouping on the index variable, we use `index_by()` instead. 
+
+```{r}
+energy %>% 
+  tsibble::index_by(day_of_year = yday(date)) %>% 
+  dplyr::summarize(mean_intensity = mean(intensity, na.rm = TRUE))
+```
+
+What if we wanted to make the time series less granular? Instead of total daily consumption, how about total weekly consumption? Note the convenience function `summarize_all()` given to us by `dplyr`!
+
+```{r}
+energy %>% 
+  tsibble::index_by(yearweek = yearweek(date)) %>% 
+  dplyr::summarize_all(sum)
+```
+
+By the way, there's no need to worry about "truncated weeks" at the beginning and end of the year. For example, December 31, 2019 is a Tuesday, and is Week 53, but its "yearmonth" is Week 1 in 2020:
+
+```{r}
+dec31 <- "2019-12-31"
+wday(dec31, label = TRUE)
+week(dec31)
+yearweek(dec31)
+```
+
+
